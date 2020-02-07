@@ -1,7 +1,16 @@
+#[macro_use]
+extern crate lazy_static;
+
 #[derive(Debug)]
 pub enum Code {
     NotImplement(Option<String>),
-    SerdeError(Option<String>)
+    SerdeError(Option<String>),
+    DeserdeError(Option<String>),
+    OpenFileError(Option<String>),
+    FileMetadataError(Option<String>),
+    FileSeekError(Option<String>),
+    FileWriteError(Option<String>),
+    FileReadError(Option<String>)
 }
 
 #[derive(Debug)]

@@ -17,6 +17,9 @@ impl CMultiFile {
 }
 
 impl CConnect {
+    /*
+    ** 在文件中创建一个块
+    */
     pub fn new_block<Header: Serialize>(&self, header: &Header) -> Result<()> {
         let mut fh = match bincode::serialize(header) {
             Ok(c) => c,
@@ -39,3 +42,5 @@ impl CMultiFile {
         f
     }
 }
+
+pub mod delete;
