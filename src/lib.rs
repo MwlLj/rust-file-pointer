@@ -10,7 +10,9 @@ pub enum Code {
     FileMetadataError(Option<String>),
     FileSeekError(Option<String>),
     FileWriteError(Option<String>),
-    FileReadError(Option<String>)
+    FileReadError(Option<String>),
+    CreateDirError(Option<String>),
+    LimitError(Option<String>)
 }
 
 #[derive(Debug)]

@@ -9,6 +9,7 @@ use serde_derive::{Deserialize, Serialize};
 use std::fs;
 use std::io::SeekFrom;
 use std::io::prelude::*;
+use std::path::Path;
 
 lazy_static!{
     static ref TAIL_LENGTH: usize = Tail::new(0).to_vec().unwrap().len();
@@ -167,7 +168,7 @@ impl Delete {
     /*
     ** 将栈顶的位置移除
     */
-    pub fn pop(&mut self) -> Result<Pos> {
+    pub fn pop(&mut self) -> Result<Option<Pos>> {
         /*
         ** 获取文件头
         */
@@ -177,6 +178,12 @@ impl Delete {
                 return Err(err);
             }
         };
+        /*
+        ** 判断栈是否为空
+        */
+        if file_header.stack_top_pos == *FILE_HEADER_LENGTH {
+            return Ok(None);
+        }
         /*
         ** 获取栈顶Tail
         */
@@ -211,7 +218,7 @@ impl Delete {
         if let Err(err) = self.update_file_header(FileHeader::new(file_header.stack_top_pos - *TAIL_LENGTH - tail.length)) {
             return Err(err);
         };
-        Ok(pos)
+        Ok(Some(pos))
     }
 }
 
@@ -309,7 +316,7 @@ impl Delete {
 }
 
 impl Delete {
-    pub fn new(path: &str) -> Result<Delete> {
+    pub fn new<P: AsRef<Path>>(path: P) -> Result<Delete> {
         /*
         ** 打开文件
         **  1. 如果文件不存在, 写入尾指针到文件头
@@ -384,8 +391,16 @@ mod test {
             }
         };
         match delete.pop() {
-            Ok(pos) => {
-                println!("path: {}, start_pos: {}, length: {}", pos.path, pos.start_pos, pos.length);
+            Ok(p) => {
+                match p {
+                    Some(pos) => {
+                        println!("path: {}, start_pos: {}, length: {}", pos.path, pos.start_pos, pos.length);
+                    },
+                    None => {
+                        println!("stack is empty");
+                        return;
+                    }
+                }
             },
             Err(err) => {
                 println!("{:?}", err);

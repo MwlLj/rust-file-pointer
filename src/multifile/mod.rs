@@ -1,46 +1,69 @@
-use serde::{Deserialize, Serialize};
+use crate::{Result, Error, Code};
 
-use super::{Result, Error, Code};
+use std::path;
+use std::fs;
 
-pub struct CMultiFile {
+pub struct MultiFile {
+    root: String
 }
 
-pub struct CConnect {
-}
-
-impl CMultiFile {
-    pub fn open(&self, name: &str) -> Result<CConnect> {
-        Err(Error{
-            code: Some(Code::NotImplement(None))
-        })
-    }
-}
-
-impl CConnect {
-    /*
-    ** 在文件中创建一个块
-    */
-    pub fn new_block<Header: Serialize>(&self, header: &Header) -> Result<()> {
-        let mut fh = match bincode::serialize(header) {
-            Ok(c) => c,
-            Err(err) => {
+impl MultiFile {
+    pub fn open_fixed(&self, name: &str, fixed_size: usize) -> Result<fixed::Fixed> {
+        /*
+        ** 1. 检测 self.root 中是否存在 name 为名称的目录
+        **  不存在 => 创建
+        */
+        let root_path = path::Path::new(&self.root);
+        let name_path = root_path.join(name);
+        if name_path.exists() {
+            /*
+            ** name目录存在
+            */
+        } else {
+            /*
+            ** name目录不存在
+            */
+            if let Err(err) = fs::create_dir_all(name_path.clone()) {
                 return Err(Error{
-                    code: Some(Code::SerdeError(Some(err.to_string())))
+                    code: Some(Code::CreateDirError(Some(err.to_string())))
                 });
+            };
+        }
+        let fixed = match fixed::Fixed::new(fixed_size, name_path) {
+            Ok(f) => f,
+            Err(err) => {
+                return Err(err);
             }
         };
-        Err(Error{
-            code: Some(Code::NotImplement(None))
-        })
+        Ok(fixed)
     }
 }
 
-impl CMultiFile {
-    pub fn new() -> CMultiFile {
-        let f = CMultiFile{
+impl MultiFile {
+    pub fn new(root: String) -> MultiFile {
+        let f = MultiFile{
+            root: root
         };
         f
     }
 }
 
 pub mod delete;
+pub mod fixed;
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    #[test]
+    #[ignore]
+    fn multi_file_open_fixed_test() {
+        let multi_file = MultiFile::new(String::from("run_test"));
+        match multi_file.open_fixed("test_db", 64) {
+            Ok(f) => f,
+            Err(err) => {
+                println!("{:?}", err);
+                return;
+            }
+        };
+    }
+}
