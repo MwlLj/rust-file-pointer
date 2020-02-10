@@ -12,7 +12,10 @@ pub enum Code {
     FileWriteError(Option<String>),
     FileReadError(Option<String>),
     CreateDirError(Option<String>),
-    LimitError(Option<String>)
+    LimitError(Option<String>),
+    NewError(Option<String>),
+    PathToStrError(Option<String>),
+    FileTryCloneError(Option<String>)
 }
 
 #[derive(Debug)]

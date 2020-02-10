@@ -8,7 +8,7 @@ pub struct MultiFile {
 }
 
 impl MultiFile {
-    pub fn open_fixed(&self, name: &str, fixed_size: usize) -> Result<fixed::Fixed> {
+    pub fn open_fixed(&self, name: &str, fixed_name: &str, fixed_size: usize) -> Result<fixed::Fixed> {
         /*
         ** 1. 检测 self.root 中是否存在 name 为名称的目录
         **  不存在 => 创建
@@ -29,7 +29,7 @@ impl MultiFile {
                 });
             };
         }
-        let fixed = match fixed::Fixed::new(fixed_size, name_path) {
+        let fixed = match fixed::Fixed::new(fixed_name, fixed_size, name_path) {
             Ok(f) => f,
             Err(err) => {
                 return Err(err);
@@ -58,8 +58,28 @@ mod test {
     #[ignore]
     fn multi_file_open_fixed_test() {
         let multi_file = MultiFile::new(String::from("run_test"));
-        match multi_file.open_fixed("test_db", 64) {
+        match multi_file.open_fixed("test.db", "user_index", 64) {
             Ok(f) => f,
+            Err(err) => {
+                println!("{:?}", err);
+                return;
+            }
+        };
+    }
+
+    #[test]
+    #[ignore]
+    fn fixed_new_block_test() {
+        let multi_file = MultiFile::new(String::from("run_test"));
+        let mut fixed = match multi_file.open_fixed("test.db", "user_index", 64) {
+            Ok(f) => f,
+            Err(err) => {
+                println!("{:?}", err);
+                return;
+            }
+        };
+        let block = match fixed.new_block() {
+            Ok(b) => b,
             Err(err) => {
                 println!("{:?}", err);
                 return;
