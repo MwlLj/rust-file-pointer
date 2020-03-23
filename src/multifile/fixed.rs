@@ -22,7 +22,7 @@ fn to_vec<T: serde::Serialize>(t: &T) -> Result<Vec<u8>> {
 
 fn new_u8_vec_with_size(size: usize) -> Vec<u8> {
     let mut v: Vec<u8> = Vec::with_capacity(size);
-    for i in 0..size {
+    for _i in 0..size {
         v.push(0);
     }
     v
@@ -77,10 +77,10 @@ lazy_static!{
 
 impl Block {
     /*
-    ** 更新header
+    ** 更新header (业务header)
     */
-    pub fn update_header<Header: serde::Serialize>(&self, header: Header) {
-        let block_header = match self.get_block_header(&mut self.file) {
+    pub fn update_header<Header: serde::Serialize>(&mut self, header: Header) -> Result<()> {
+        let block_header = match Block::get_block_header(self.start_pos, &mut self.file) {
             Ok(h) => h,
             Err(err) => {
                 return Err(err);
@@ -92,22 +92,48 @@ impl Block {
                 return Err(err);
             }
         };
-    }
-}
-
-impl Block {
-    fn get_block_header(file: &mut fs::File) -> Result<BlockHeader> {
-        if let Err(err) = file.seek(SeekFrom::Start(0)) {
+        /*
+        ** 移动到业务头的位置 (块起始位置 + 块头长度)
+        */
+        if let Err(err) = self.file.seek(SeekFrom::Start((self.start_pos + *BLOCK_HEADER_LENGTH) as u64)) {
             return Err(Error{
                 code: Some(Code::FileSeekError(Some(err.to_string())))
             });
         };
+        /*
+        ** 覆盖业务头信息
+        */
+        if let Err(err) = self.file.write(header_vec.as_slice()) {
+            return Err(Error{
+                code: Some(Code::FileWriteError(Some(err.to_string())))
+            });
+        };
+        Ok(())
+    }
+}
+
+impl Block {
+    fn get_block_header(start_pos: usize, file: &mut fs::File) -> Result<BlockHeader> {
+        /*
+        ** 移动到该块的起始位置
+        */
+        if let Err(err) = file.seek(SeekFrom::Start(start_pos as u64)) {
+            return Err(Error{
+                code: Some(Code::FileSeekError(Some(err.to_string())))
+            });
+        };
+        /*
+        ** 读取块头内容
+        */
         let mut content: Vec<u8> = Vec::new();
         if let Err(err) = file.take(*BLOCK_HEADER_LENGTH as u64).read_to_end(&mut content) {
             return Err(Error{
                 code: Some(Code::FileReadError(Some(err.to_string())))
             });
         };
+        /*
+        ** 反序列化块头内容
+        */
         let header = match bincode::deserialize(&content) {
             Ok(h) => h,
             Err(err) => {
@@ -157,8 +183,8 @@ impl Fixed {
     */
     pub fn new_block(&mut self) -> Result<Block> {
         let file_clone = match self.file.try_clone() {
-            Some(f) => f,
-            None => {
+            Ok(f) => f,
+            Err(_) => {
                 return Err(Error{
                     code: Some(Code::FileTryCloneError(Some(String::from("file try clone error"))))
                 });
@@ -209,9 +235,9 @@ impl Fixed {
                 return Ok(Block::new(self.file_path.clone(), file_size, self.fixed_size, file_clone));
             }
         }
-        Err(Error{
-            code: Some(Code::NewError(Some(String::from("delete and new block all error"))))
-        })
+        // Err(Error{
+        //     code: Some(Code::NewError(Some(String::from("delete and new block all error"))))
+        // })
     }
 }
 
